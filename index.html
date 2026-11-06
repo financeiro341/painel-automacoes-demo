@@ -825,9 +825,39 @@ function nextRun(cron){
   }catch(e){}
   return null;
 }
-function trigs(){return TRIG.map(function(t){var x=JSON.parse(JSON.stringify(t));if(x.enabled){var n=nextRun(x.cron_expression);if(n)x.next_run_at=n}return x})}
+function trigs(){return TRIG.map(function(t){var x=JSON.parse(JSON.stringify(t));if(x.enabled){var n=nextRun(x.cron_expression);if(n)x.next_run_at=n;var l=LAST[x.id];if(l){x.last_fired_at=new Date(l.i).toISOString();x.last_run={status:'ROUTINE_RUN_STATUS_SUCCEEDED',fired_at:new Date(l.i).toISOString(),finished_at:new Date(l.f).toISOString(),failure_reason:'ROUTINE_RUN_FAILURE_REASON_UNSPECIFIED'}}}return x})}
 function mkDoc(id,data){return {id:id,exists:true,data:function(){return data}}}
 var EXEC=[];TRIG.forEach(function(t){var lr=t.last_run;if(lr&&lr.fired_at&&lr.finished_at&&/SUCC/.test(lr.status||'')){EXEC.push(mkDoc(t.id+'-demo',{tarefa:t.id,nome:t.name,inicio:lr.fired_at,fim:lr.finished_at,status:'ok',resumo:''}))}});
+/* Dados ilustrativos (06/11/2026): a cópia pública não tem o histórico real, então cada tarefa ligada recebe um registro "ok" para
+   cada horário previsto dos últimos 10 dias que já passou (hoje só os que já passaram), sem ir antes da criação da tarefa.
+   Só existe nesta cópia; o painel interno lê o banco de verdade. */
+var LAST={};
+(function(){
+  var now=Date.now(),base=new Date(now-3*36e5),real=EXEC.slice();
+  TRIG.forEach(function(t){
+    if(!t.enabled||!t.cron_expression)return;
+    var p=String(t.cron_expression).replace(/^CRON_TZ=\S+\s+/,'').trim().split(/\s+/);if(p.length<5)return;
+    var mi=expand(p[0])||[0],hh=expand(p[1])||[0],dom=expand(p[2]),mon=expand(p[3]),dow=expand(p[4]);
+    var created=t.created_at?Date.parse(t.created_at):0,seed=0;for(var c=0;c<t.id.length;c++)seed+=t.id.charCodeAt(c);
+    for(var off=-10;off<=0;off++){
+      var d=new Date(Date.UTC(base.getUTCFullYear(),base.getUTCMonth(),base.getUTCDate()+off));
+      if(dow&&dow.indexOf(d.getUTCDay())<0)continue;
+      if(dom&&dom.indexOf(d.getUTCDate())<0)continue;
+      if(mon&&mon.indexOf(d.getUTCMonth()+1)<0)continue;
+      for(var a=0;a<hh.length;a++)for(var b=0;b<mi.length;b++){
+        var slot=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),hh[a]+3,mi[b]);
+        var j=(seed+off*7+hh[a]*3+mi[b])%4, dur=(1+(seed+hh[a]+off*5+9)%5);
+        var ini=slot+(1+j)*6e4, fim=ini+dur*6e4;
+        if(fim>now-6e4||ini<created)continue;
+        if(real.some(function(r){var q=r.data();return q.tarefa===t.id&&Math.abs(Date.parse(q.inicio)-slot)<150*6e4}))continue;
+        var o={tarefa:t.id,nome:t.name,inicio:new Date(ini).toISOString(),fim:new Date(fim).toISOString(),status:'ok',resumo:''};
+        EXEC.push(mkDoc(t.id+'-demo-'+ini,o));
+      }
+    }
+    var best=null;EXEC.concat(real).forEach(function(r){var q=r.data();if(q.tarefa===t.id){var i2=Date.parse(q.inicio);if(!best||i2>best.i)best={i:i2,f:Date.parse(q.fim)}}});
+    if(best)LAST[t.id]=best;
+  });
+})();
 function snap(docs){return {docs:docs,size:docs.length,empty:!docs.length,forEach:function(f){docs.forEach(f)}}}
 function Col(docs){this.d=docs}
 Col.prototype.where=function(){return this};Col.prototype.orderBy=function(){return this};Col.prototype.limit=function(){return this};
@@ -849,7 +879,7 @@ window.claude={use:function(n){
   return Promise.resolve(null);
 }};
 document.addEventListener('DOMContentLoaded',function(){
-  var b=document.createElement('div');b.textContent='Versão de demonstração · dados de 05/11/2026 · somente leitura';
+  var b=document.createElement('div');b.textContent='Versão de demonstração · dados ilustrativos · somente leitura';
   b.style.cssText='position:fixed;right:10px;bottom:10px;z-index:99998;background:#1f2937;color:#fff;font:600 11px/1.3 Inter,system-ui,sans-serif;padding:6px 10px;border-radius:999px;opacity:.88;pointer-events:none';
   document.body.appendChild(b);
 });
