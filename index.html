@@ -62,6 +62,7 @@
 
 
 
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -492,6 +493,18 @@ tr.row:hover td{background:var(--hover)}
 .ent-area h3 i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .ent-item:last-child{border-bottom:0}
 .ent-item .d{font-size:12.5px;color:var(--muted)}
+.ent-det{border-bottom:1px solid var(--line-soft)}
+.ent-det:last-child{border-bottom:0}
+.ent-det>summary{list-style:none;display:flex;align-items:flex-start;gap:8px;padding:10px 0;min-height:44px;cursor:pointer}
+.ent-det>summary::-webkit-details-marker{display:none}
+.ent-det .nm{flex:1;min-width:0;font-weight:600}
+.ent-det>summary:hover .nm{color:var(--accent-ink)}
+.ent-det .ent-chev{display:inline-flex;flex:none;margin-top:2px;color:var(--muted);transition:transform .15s ease}
+.ent-det[open] .ent-chev{transform:rotate(90deg)}
+.ent-det .d{font-size:12.5px;color:var(--muted);padding:0 0 12px 24px}
+.ent-det .ent-tempo{flex:none}
+.ent-det .ent-tempo.vis{white-space:normal;max-width:42%;text-align:center;line-height:1.3}
+@media (prefers-reduced-motion:reduce){.ent-det .ent-chev{transition:none}}
 
 .chat-card{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
 .msgs{min-height:240px}
@@ -1179,7 +1192,7 @@ function renderEntregas(){
   var its=[];ENTREGAS.forEach(function(a){a.itens.forEach(function(i){if(i.min)its.push({nome:i.nome,min:i.min,cor:cor(a.area)})})});
   its.sort(function(a,b){return b.min-a.min});var max=its.length?its[0].min:1;
   var ch=$('ent-chart');if(ch)ch.innerHTML=its.map(function(i){return '<div class="bar-row"><span class="nm" title="'+esc(i.nome)+'">'+esc(i.nome)+'</span><div class="bar-track" role="img" aria-label="'+esc(i.nome+': cerca de '+i.min+' minutos por dia útil')+'"><span style="width:'+(i.min/max*100)+'%;background:'+i.cor+'"></span></div><span class="val">≈ '+i.min+' min/dia</span></div>'}).join('');
-  $('ent-lista').innerHTML=ENTREGAS.map(function(a){return '<div class="ent-area"><h3><i style="background:'+cor(a.area)+'"></i>'+esc(a.area)+'</h3>'+a.itens.map(function(i){return '<div class="ent-item"><div><div style="font-weight:600">'+esc(i.nome)+'</div><div class="d">Desde '+esc(i.desde)+'. '+esc(i.base)+'</div></div>'+(i.min?'<span class="ent-tempo">≈ '+i.min+' min/dia</span>':(i.horas?'<span class="ent-tempo">≈ '+i.horas+' h, uma vez</span>':'<span class="ent-tempo vis">'+esc(i.tag||'visibilidade')+'</span>'))+'</div>'}).join('')+'</div>'}).join('');
+  $('ent-lista').innerHTML=ENTREGAS.map(function(a){return '<div class="ent-area"><h3><i style="background:'+cor(a.area)+'"></i>'+esc(a.area)+'</h3>'+a.itens.map(function(i){return '<details class="ent-det"><summary><span class="ent-chev" aria-hidden="true">'+ICON.chev+'</span><span class="nm">'+esc(i.nome)+'</span>'+(i.min?'<span class="ent-tempo">≈ '+i.min+' min/dia</span>':(i.horas?'<span class="ent-tempo">≈ '+i.horas+' h, uma vez</span>':'<span class="ent-tempo vis">'+esc(i.tag||'visibilidade')+'</span>'))+'</summary><div class="d">Desde '+esc(i.desde)+'. '+esc(i.base)+'</div></details>'}).join('')+'</div>'}).join('');
   var ef=$('ent-foot');if(ef)ef.textContent='O tempo economizado é uma estimativa a partir do volume real de cada rotina e do tempo que ela levava à mão (a premissa está em cada linha). Do total, ≈ '+nov+' min por dia são de rotinas novas (relatório diário, fluxo de caixa, DRE e supervisor), que antes ninguém fazia e estão valorizadas pelo que custariam à mão; só o trabalho que já era feito à mão soma ≈ '+fmtMin(tot-nov)+' por dia útil (≈ '+Math.round((tot-nov)*22/60)+' h por mês). Sistemas e rotinas ainda sem tempo medido não entram na conta. As entregas pontuais, feitas uma vez, somam ≈ '+pont+' h e ficam fora do total por dia útil.';
   $('ent-base').innerHTML=ENTREGAS_BASE.map(function(t){return '<li>'+ICON.checkS+'<span>'+esc(t)+'</span></li>'}).join('');
 }
